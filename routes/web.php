@@ -46,12 +46,26 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/orders/riwayat', [KasirController::class, 'riwayatOrder'])->name('orders.riwayats');
         Route::post('orders/{order}/complete', [KasirController::class, 'completeOrder'])
             ->name('orders.complete');
+
+        // Orders routes
+        Route::get('/orders', [KasirController::class, 'index'])->name('orders.index');
+        Route::get('/orders/create', [KasirController::class, 'create'])->name('orders.create');
+        Route::post('/orders', [KasirController::class, 'store'])->name('orders.store');
+        Route::get('/orders/{order}', [KasirController::class, 'show'])->name('orders.show');
+        Route::get('/orders/{id_order}/invoice', [KasirController::class, 'invoice'])->name('orders.invoice');
+        Route::post('/orders/{order}/complete', [KasirController::class, 'completeOrder'])->name('orders.complete');
+        Route::get('/riwayat-order', [KasirController::class, 'riwayatOrder'])->name('orders.riwayat');
+        Route::get('/riwayat-transaksi', [KasirController::class, 'riwayatTransaksi'])->name('transaksi.riwayat');
+        Route::post('/orders/{order}/pembayaran', [KasirController::class, 'prosesPembayaran'])
+            ->name('orders.pembayaran');
+        Route::get('/orders/{order}/pembayaran', [KasirController::class, 'showPembayaran'])
+            ->name('orders.pembayaran.show');
     });
 
     Route::prefix('koki')->middleware('checklevel:3')->name('koki.')->group(function () {
-        Route::get('/dashboard', [KokiController::class, 'dashboard'])->name('koki.dashboard');
-        Route::get('/orders', [KokiController::class, 'orderList'])->name('koki.orders');
-        Route::patch('/orders/{detailOrder}', [KokiController::class, 'updateStatus'])->name('koki.orders.update');
+        Route::get('/dashboard', [KokiController::class, 'dashboard'])->name('dashboard');
+        Route::get('/orders', [KokiController::class, 'orderList'])->name('orders.index');
+        Route::patch('/orders/{detailOrder}/update', [KokiController::class, 'updateStatus'])->name('orders.update');
     });
 
     Route::get('/daftar/makanans', [makananController::class, 'index'])->name('daftar.makanans');

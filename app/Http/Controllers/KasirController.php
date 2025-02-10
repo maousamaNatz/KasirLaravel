@@ -66,13 +66,10 @@ class KasirController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'customer_name' => 'nullable|string|max:255',
             'no_meja' => 'required|integer',
             'items' => 'required|array|min:1',
             'items.*.id' => 'required|exists:makanans,id_masakan',
             'items.*.qty' => 'required|integer|min:1',
-            'payment_method' => 'required|in:cash,debit,credit,e-wallet',
-            'payment_amount' => 'required|numeric|min:0',
             'notes' => 'nullable|string|max:255'
         ]);
 
@@ -83,14 +80,14 @@ class KasirController extends Controller
             $total_harga += $makanan->harga * $item['qty'];
         }
 
-        // Buat order baru dengan menambahkan total_harga
+        // Buat order baru
         $order = Order::create([
             'no_meja' => $request->no_meja,
-            'id_user' => AuthController::userId(), // Gunakan AuthController untuk mendapatkan ID user
+            'id_user' => AuthController::userId(),
             'tanggal' => now(),
             'keterangan' => $request->notes,
             'status_order' => 'pending',
-            'total_harga' => $total_harga // Tambahkan total_harga
+            'total_harga' => $total_harga
         ]);
 
         // Buat detail order
@@ -105,7 +102,7 @@ class KasirController extends Controller
             ]);
         }
 
-        return redirect()->route('kasir.orders.index')
+        return redirect()->route('kasir.orders.invoice', $order->id_order)
             ->with('success', 'Order berhasil dibuat');
     }
 
@@ -117,21 +114,25 @@ class KasirController extends Controller
 
     public function completeOrder(Order $order)
     {
-        $total = $order->detailOrders->sum(function($detail) {
-            return $detail->makanan->harga * $detail->quantity;
-        });
+        // Validasi apakah order milik kasir yang login
+        if ($order->id_user !== AuthController::userId()) {
+            return redirect()->route('kasir.orders.index')
+                ->with('error', 'Anda tidak memiliki akses untuk menyelesaikan order ini');
+        }
 
-        Transaksi::create([
-            'id_user' => Auth::id(),
-            'id_order' => $order->id,
-            'tanggal' => now(),
-            'total_bayar' => $total
-        ]);
-
+        // Update status order
         $order->update(['status_order' => 'selesai']);
 
-        return redirect()->route('kasir.orders.index')
-            ->with('success', 'Transaksi berhasil disimpan');
+        // Buat transaksi
+        Transaksi::create([
+            'id_user' => AuthController::userId(),
+            'id_order' => $order->id_order,
+            'tanggal' => now(),
+            'total_bayar' => $order->total_harga
+        ]);
+
+        return redirect()->route('kasir.orders.invoice', $order->id_order)
+            ->with('success', 'Pesanan berhasil diselesaikan');
     }
 
     public function riwayatOrder()
@@ -142,5 +143,109 @@ class KasirController extends Controller
             ->paginate(10);
 
         return view('kasir.orders.riwayatOrder', compact('orders'));
+    }
+
+    public function invoice($id_order)
+    {
+        $order = Order::with(['detailOrders.makanan', 'user'])
+            ->findOrFail($id_order);
+
+        // Jika order bukan milik kasir yang sedang login
+        if ($order->id_user !== AuthController::userId()) {
+            return redirect()->route('kasir.orders.index')
+                ->with('error', 'Anda tidak memiliki akses ke invoice ini');
+        }
+
+        return view('kasir.orders.invoice', compact('order'));
+    }
+
+    public function riwayatTransaksi(Request $request)
+    {
+        $query = Transaksi::with(['order.detailOrders.makanan', 'user'])
+            ->orderBy('tanggal', 'desc');
+
+        // Filter berdasarkan tanggal jika ada
+        if ($request->has('tanggal')) {
+            $query->whereDate('tanggal', $request->tanggal);
+        }
+
+        $transaksis = $query->paginate(10);
+
+        // Hitung total pendapatan hari ini
+        $totalHariIni = Transaksi::whereDate('tanggal', today())
+            ->sum('total_bayar');
+
+        return view('kasir.transaksi.riwayat', compact('transaksis', 'totalHariIni'));
+    }
+
+    public function prosesPembayaran(Request $request, Order $order)
+    {
+        $request->validate([
+            'uang_bayar' => [
+                'required',
+                'numeric',
+                'min:0',
+                'max:999999999999999.99' // Sesuai dengan decimal(15,2)
+            ],
+            'metode_pembayaran' => 'required|in:tunai,debit,kredit,qris'
+        ]);
+
+        try {
+            $uang_bayar = $request->uang_bayar;
+            $total_harga = $order->total_harga;
+            $uang_kembali = $uang_bayar - $total_harga;
+
+            // Tentukan status pembayaran
+            $status_pembayaran = 'lunas';
+            if ($uang_bayar < $total_harga) {
+                $status_pembayaran = 'kurang';
+                $uang_kembali = 0;
+            }
+
+            // Update order
+            $order->update([
+                'uang_bayar' => $uang_bayar,
+                'uang_kembali' => max(0, $uang_kembali),
+                'metode_pembayaran' => $request->metode_pembayaran,
+                'status_pembayaran' => $status_pembayaran
+            ]);
+
+            // Jika pembayaran lunas, buat transaksi
+            if ($status_pembayaran === 'lunas') {
+                $order->update(['status_order' => 'selesai']);
+                
+                Transaksi::create([
+                    'id_user' => AuthController::userId(),
+                    'id_order' => $order->id_order,
+                    'tanggal' => now(),
+                    'total_bayar' => $total_harga
+                ]);
+            }
+
+            return redirect()->route('kasir.orders.invoice', $order->id_order)
+                ->with('success', 'Pembayaran berhasil diproses');
+
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Terjadi kesalahan saat memproses pembayaran. Pastikan jumlah uang valid.')
+                ->withInput();
+        }
+    }
+
+    public function showPembayaran(Order $order)
+    {
+        // Validasi apakah order milik kasir yang login
+        if ($order->id_user !== AuthController::userId()) {
+            return redirect()->route('kasir.orders.index')
+                ->with('error', 'Anda tidak memiliki akses ke pembayaran ini');
+        }
+
+        // Validasi status pembayaran
+        if ($order->status_pembayaran === 'lunas') {
+            return redirect()->route('kasir.orders.invoice', $order->id_order)
+                ->with('error', 'Pesanan ini sudah lunas');
+        }
+
+        return view('kasir.orders.pembayaran', compact('order'));
     }
 }

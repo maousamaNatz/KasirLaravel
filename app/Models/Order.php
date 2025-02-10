@@ -16,11 +16,39 @@ class Order extends Model
         'id_user',
         'keterangan',
         'status_order',
-        'total_harga'
+        'total_harga',
+        'uang_bayar',
+        'uang_kembali',
+        'metode_pembayaran',
+        'status_pembayaran'
     ];
 
-    // Tambahkan properti dates untuk casting
-    protected $dates = ['tanggal'];
+    // Tambahkan casting untuk tanggal
+    protected $casts = [
+        'tanggal' => 'datetime',
+        'total_harga' => 'decimal:2',
+        'uang_bayar' => 'decimal:2',
+        'uang_kembali' => 'decimal:2'
+    ];
+
+    public function getStatusPembayaranLabelAttribute()
+    {
+        return [
+            'belum_bayar' => 'Belum Bayar',
+            'kurang' => 'Kurang',
+            'lunas' => 'Lunas'
+        ][$this->status_pembayaran] ?? $this->status_pembayaran;
+    }
+
+    public function getMetodePembayaranLabelAttribute()
+    {
+        return [
+            'tunai' => 'Tunai',
+            'debit' => 'Kartu Debit',
+            'kredit' => 'Kartu Kredit',
+            'qris' => 'QRIS'
+        ][$this->metode_pembayaran] ?? $this->metode_pembayaran;
+    }
 
     public function user()
     {

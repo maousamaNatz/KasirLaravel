@@ -1,23 +1,43 @@
 @extends('layouts.app')
 
-@section('title', 'Daftar Pesanan')
+@section('title', 'Dashboard Koki')
 
 @section('content')
 <div class="container mx-auto px-4 py-6">
+    <!-- Statistik -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-gray-600 text-sm font-medium">Total Pesanan Hari Ini</h3>
+            <p class="text-2xl font-bold text-gray-800">{{ $totalOrders }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-gray-600 text-sm font-medium">Pesanan Pending</h3>
+            <p class="text-2xl font-bold text-yellow-500">{{ $pendingOrders }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-gray-600 text-sm font-medium">Sedang Diproses</h3>
+            <p class="text-2xl font-bold text-blue-500">{{ $prosesOrders }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-gray-600 text-sm font-medium">Pesanan Selesai</h3>
+            <p class="text-2xl font-bold text-green-500">{{ $completedOrders }}</p>
+        </div>
+    </div>
+
+    <!-- Daftar Pesanan Aktif -->
     <div class="bg-white rounded-lg shadow-md">
         <div class="p-6 border-b">
-            <h2 class="text-xl font-semibold">Daftar Pesanan</h2>
+            <h2 class="text-xl font-semibold">Pesanan Aktif</h2>
         </div>
-        
         <div class="p-6">
-            @forelse($orders as $order)
-            <div class="mb-8 last:mb-0">
+            @forelse($activeOrders as $order)
+            <div class="mb-6 last:mb-0">
                 <div class="flex justify-between items-center mb-4">
                     <div>
                         <h3 class="text-lg font-semibold">Order #{{ $order->id_order }}</h3>
                         <p class="text-sm text-gray-600">
                             Meja {{ $order->no_meja }} • 
-                            {{ $order->tanggal->format('d/m/Y H:i') }} • 
+                            {{ $order->tanggal->format('H:i') }} • 
                             Kasir: {{ $order->user->nama_user }}
                         </p>
                     </div>
@@ -71,14 +91,10 @@
             </div>
             @empty
             <div class="text-center text-gray-500 py-8">
-                Tidak ada pesanan yang perlu diproses
+                Tidak ada pesanan aktif saat ini
             </div>
             @endforelse
-
-            <div class="mt-6">
-                {{ $orders->links() }}
-            </div>
         </div>
     </div>
 </div>
-@endsection
+@endsection 

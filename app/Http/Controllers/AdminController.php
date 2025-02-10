@@ -6,53 +6,61 @@ use App\Models\User;
 use App\Models\Order;
 use App\Models\Makanan;
 use App\Models\DetailOrder;
+use App\Models\Transaksi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+
 class AdminController extends Controller
 {
     public function dashboard()
     {
+        // Statistik User
         $totalUsers = User::count();
-        $totalMenus = Makanan::count();
-        $totalOrders = Order::count();
-        $completedOrders = Order::where('status_order', 'selesai')->count();
-        $newUsersLastMonth = User::whereDate('created_at', '>=', now()->subDays(30))->count();
-        $newMenusThisWeek = Makanan::whereDate('created_at', '>=', now()->subDays(7))->count();
+        $totalKasir = User::where('id_level', 2)->count();
+        $totalKoki = User::where('id_level', 3)->count();
 
-        // Perbaikan perhitungan total revenue
-        $totalRevenue = Order::with(['detailOrders.makanan'])
-            ->where('status_order', 'selesai')
-            ->get()
-            ->sum(function($order) {
-                return $order->detailOrders->sum(fn($detail) => $detail->makanan->harga);
-            });
+        // Statistik Menu
+        $totalMenu = Makanan::count();
+        $menuTersedia = Makanan::where('status_masakan', 'tersedia')->count();
+        $menuHabis = Makanan::where('status_masakan', 'habis')->count();
 
-        // Perbaikan perhitungan rata-rata harian
-        $avgDailyRevenue = $totalRevenue / max(Order::where('status_order', 'selesai')
-            ->distinct('tanggal')
-            ->count('tanggal'), 1);
+        // Statistik Transaksi Hari Ini
+        $transaksiHariIni = Transaksi::whereDate('tanggal', today())->count();
+        $pendapatanHariIni = Transaksi::whereDate('tanggal', today())->sum('total_bayar');
 
-        // Data untuk grafik penjualan 6 bulan ter  akhir
-        $salesData = $this->getSalesData();
+        // Statistik Order
+        $orderHariIni = Order::whereDate('tanggal', today())->count();
+        $orderPending = Order::where('status_order', 'pending')->count();
+        $orderProses = Order::where('status_order', 'proses')->count();
+        $orderSelesai = Order::where('status_order', 'selesai')->count();
 
-        // Data untuk grafik kategori menu
-        $categoryData = $this->getCategoryData();
+        // Transaksi Terbaru
+        $transaksiTerbaru = Transaksi::with(['order.user', 'user'])
+            ->orderBy('tanggal', 'desc')
+            ->take(5)
+            ->get();
 
-        // Data 10 menu terlaris
-        $topMenus = $this->getTopMenus();
+        // Menu Terlaris
+        $menuTerlaris = Makanan::withCount(['detailOrders as total_dipesan'])
+            ->orderBy('total_dipesan', 'desc')
+            ->take(5)
+            ->get();
 
         return view('admin.dashboard', compact(
             'totalUsers',
-            'totalMenus',
-            'totalOrders',
-            'completedOrders',
-            'totalRevenue',
-            'avgDailyRevenue',
-            'newUsersLastMonth',
-            'newMenusThisWeek',
-            'salesData',
-            'categoryData',
-            'topMenus'
+            'totalKasir',
+            'totalKoki',
+            'totalMenu',
+            'menuTersedia',
+            'menuHabis',
+            'transaksiHariIni',
+            'pendapatanHariIni',
+            'orderHariIni',
+            'orderPending',
+            'orderProses',
+            'orderSelesai',
+            'transaksiTerbaru',
+            'menuTerlaris'
         ));
     }
 

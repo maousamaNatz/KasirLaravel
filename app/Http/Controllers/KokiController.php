@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Order;
 use App\Models\DetailOrder;
 use Illuminate\Http\Request;
 
@@ -9,21 +10,54 @@ class KokiController extends Controller
 {
     public function dashboard()
     {
-        return view('koki.dashboard');
+        // Statistik pesanan hari ini
+        $totalOrders = Order::whereDate('tanggal', today())->count();
+        $pendingOrders = DetailOrder::whereHas('order', function($query) {
+            $query->whereDate('tanggal', today());
+        })->where('status_detail_order', 'pending')->count();
+        
+        $prosesOrders = DetailOrder::whereHas('order', function($query) {
+            $query->whereDate('tanggal', today());
+        })->where('status_detail_order', 'diproses')->count();
+        
+        $completedOrders = DetailOrder::whereHas('order', function($query) {
+            $query->whereDate('tanggal', today());
+        })->where('status_detail_order', 'selesai')->count();
+
+        // Daftar pesanan yang perlu diproses
+        $activeOrders = Order::with(['detailOrders.makanan', 'user'])
+            ->whereHas('detailOrders', function($query) {
+                $query->whereIn('status_detail_order', ['pending', 'diproses']);
+            })
+            ->whereDate('tanggal', today())
+            ->orderBy('tanggal', 'asc')
+            ->get();
+
+        return view('koki.dashboard', compact(
+            'totalOrders',
+            'pendingOrders',
+            'prosesOrders',
+            'completedOrders',
+            'activeOrders'
+        ));
     }
 
     public function orderList()
     {
-        $orders = DetailOrder::with(['order', 'makanan'])
-            ->where('status_detail_order', 'pending')
-            ->get();
+        $orders = Order::with(['detailOrders.makanan', 'user'])
+            ->whereHas('detailOrders', function($query) {
+                $query->whereIn('status_detail_order', ['pending', 'diproses']);
+            })
+            ->orderBy('tanggal', 'asc')
+            ->paginate(10);
+
         return view('koki.orders.index', compact('orders'));
     }
 
-    public function updateStatus(DetailOrder $detailOrder, Request $request)
+    public function updateStatus(Request $request, DetailOrder $detailOrder)
     {
         $request->validate([
-            'status' => 'required|in:diproses,selesai'
+            'status' => 'required|in:pending,diproses,selesai'
         ]);
 
         $detailOrder->update([
@@ -31,14 +65,17 @@ class KokiController extends Controller
         ]);
 
         // Cek apakah semua detail order sudah selesai
-        $allComplete = $detailOrder->order->detailOrders()
+        $allCompleted = $detailOrder->order->detailOrders()
             ->where('status_detail_order', '!=', 'selesai')
-            ->count() === 0;
+            ->doesntExist();
 
-        if ($allComplete) {
+        if ($allCompleted) {
             $detailOrder->order->update(['status_order' => 'siap']);
+        } elseif ($request->status === 'diproses') {
+            $detailOrder->order->update(['status_order' => 'proses']);
         }
 
-        return redirect()->route('koki.orders')->with('success', 'Status pesanan berhasil diperbarui');
+        return redirect()->back()
+            ->with('success', 'Status pesanan berhasil diperbarui');
     }
 }
