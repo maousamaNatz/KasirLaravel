@@ -45,11 +45,10 @@ class makananController extends Controller
     /**
      * Menampilkan form edit makanan
      */
-    public function edit($id)
+    public function edit(Makanan $makanan)
     {
-
-        $makanan = Makanan::findOrFail($id);
-        return view('admin.editMakanan', compact('makanan'));
+        $kategoris = Makanan::all();
+        return view('admin.menu.edit', compact('makanan', 'kategoris'));
     }
 
     /**

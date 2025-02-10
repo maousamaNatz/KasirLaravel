@@ -16,14 +16,14 @@
         <!-- Filter dan Pencarian (Opsional) -->
         <div class="mb-6">
             <form action="{{ route('kasir.transaksi.riwayat') }}" method="GET" class="flex gap-4">
-                <input type="date" name="tanggal" 
+                <input type="date" name="tanggal"
                        class="border rounded px-3 py-2"
                        value="{{ request('tanggal') }}">
                 <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
                     Filter
                 </button>
                 @if(request('tanggal'))
-                <a href="{{ route('kasir.transaksi.riwayat') }}" 
+                <a href="{{ route('kasir.transaksi.riwayat') }}"
                    class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
                     Reset
                 </a>
@@ -55,7 +55,7 @@
                         <td class="px-4 py-2">{{ $transaksi->user->nama_user }}</td>
                         <td class="px-4 py-2 text-right">Rp {{ number_format($transaksi->total_bayar, 0, ',', '.') }}</td>
                         <td class="px-4 py-2 text-center">
-                            <a href="{{ route('kasir.orders.invoice', $transaksi->order->id_order) }}" 
+                            <a href="{{ route('kasir.orders.invoice', $transaksi->order->id_order) }}"
                                class="text-blue-500 hover:text-blue-700">
                                 Lihat Invoice
                             </a>
@@ -98,4 +98,4 @@
         </div>
     </div>
 </div>
-@endsection 
+@endsection

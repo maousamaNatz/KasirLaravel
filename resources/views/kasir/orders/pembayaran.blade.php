@@ -111,8 +111,8 @@ function calculateChange() {
     const totalHarga = {{ $order->total_harga }};
     const uangBayar = parseFloat(document.getElementById('uang_bayar').value) || 0;
     const kembalian = Math.min(uangBayar - totalHarga, 999999999999999.99);
-    
-    document.getElementById('kembalian').textContent = 
+
+    document.getElementById('kembalian').textContent =
         `Rp ${kembalian >= 0 ? kembalian.toLocaleString() : 0}`;
 }
 

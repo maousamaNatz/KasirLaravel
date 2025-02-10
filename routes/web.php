@@ -25,11 +25,19 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('admin')->middleware('checklevel:1')->name('admin.')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
         Route::resource('users', AdminController::class);
-        Route::get('/makanans/create', [makananController::class, 'create'])->name('makanans.create');
-        Route::post('/makanans', [makananController::class, 'store'])->name('makanans.store');
-        Route::get('/makanans/{makanan}/edit', [makananController::class, 'edit'])->name('makanans.edit');
-        Route::put('/makanans/{makanan}', [makananController::class, 'update'])->name('makanans.update');
-        Route::delete('/makanans/{makanan}', [makananController::class, 'destroy'])->name('makanans.destroy');
+        Route::resource('makanans', AdminController::class, [
+            'names' => [
+                'index' => 'makanans.index',
+                'create' => 'makanans.create',
+                'store' => 'makanans.store',
+                'edit' => 'makanans.edit',
+                'update' => 'makanans.update',
+                'destroy' => 'makanans.destroy'
+            ],
+            'except' => ['show']
+        ]);
+        Route::get('/makanans/{makanan}/edit', [MakananController::class, 'edit'])->name('admin.makanans.edit');
+        Route::put('/makanans/{makanan}', [MakananController::class, 'update'])->name('admin.makanans.update');
     });
 
     Route::prefix('kasir')->name('kasir.')->middleware(['auth', 'checklevel:2'])->group(function () {

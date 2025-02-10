@@ -15,11 +15,11 @@ class KokiController extends Controller
         $pendingOrders = DetailOrder::whereHas('order', function($query) {
             $query->whereDate('tanggal', today());
         })->where('status_detail_order', 'pending')->count();
-        
+
         $prosesOrders = DetailOrder::whereHas('order', function($query) {
             $query->whereDate('tanggal', today());
         })->where('status_detail_order', 'diproses')->count();
-        
+
         $completedOrders = DetailOrder::whereHas('order', function($query) {
             $query->whereDate('tanggal', today());
         })->where('status_detail_order', 'selesai')->count();

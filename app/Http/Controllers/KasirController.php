@@ -213,7 +213,7 @@ class KasirController extends Controller
             // Jika pembayaran lunas, buat transaksi
             if ($status_pembayaran === 'lunas') {
                 $order->update(['status_order' => 'selesai']);
-                
+
                 Transaksi::create([
                     'id_user' => AuthController::userId(),
                     'id_order' => $order->id_order,

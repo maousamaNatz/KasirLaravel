@@ -110,11 +110,11 @@
 
     <!-- Tombol Aksi -->
     <div class="mt-8 flex gap-4">
-        <a href="{{ route('admin.users.index') }}" 
+        <a href="{{ route('admin.users.index') }}"
            class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
             Kelola Pengguna
         </a>
-        <a href="{{ route('daftar.makanans') }}" 
+        <a href="{{ route('admin.makanans.index') }}"
            class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
             Kelola Menu
         </a>

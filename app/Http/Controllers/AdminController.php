@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Level;
 use App\Models\Order;
 use App\Models\Makanan;
-use App\Models\DetailOrder;
 use App\Models\Transaksi;
+use App\Models\DetailOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class AdminController extends Controller
 {
@@ -133,17 +135,23 @@ class AdminController extends Controller
     }
 
     // CRUD User
-    public function userIndex()
+    public function index()
     {
         $users = User::with('level')->get();
         return view('admin.users.index', compact('users'));
     }
 
-    public function userStore(Request $request)
+    public function create()
+    {
+        $levels = Level::all();
+        return view('admin.users.create', compact('levels'));
+    }
+
+    public function store(Request $request)
     {
         $request->validate([
             'nama_user' => 'required|string|max:255',
-            'username' => 'required|string|unique:users',
+            'username' => 'required|string|max:255|unique:users',
             'password' => 'required|string|min:6',
             'id_level' => 'required|exists:levels,id_level'
         ]);
@@ -155,25 +163,60 @@ class AdminController extends Controller
             'id_level' => $request->id_level
         ]);
 
-        return redirect()->route('admin.users.index')->with('success', 'User berhasil ditambahkan');
+        return redirect()->route('admin.users.index')
+            ->with('success', 'User berhasil ditambahkan');
     }
 
-    public function userUpdate(Request $request, User $user)
+    public function edit(User $user)
     {
+        $levels = Level::all();
+        return view('admin.users.edit', compact('user', 'levels'));
+    }
+
+    public function update(Request $request, User $user)
+    {
+        // Validasi input
         $request->validate([
             'nama_user' => 'required|string|max:255',
-            'username' => 'required|string|unique:users,username,'.$user->id_user.',id_user',
+            'username' => 'required|string|max:255|unique:users,username,' . $user->id_user . ',id_user',
+            'password' => 'nullable|string|min:6',
             'id_level' => 'required|exists:levels,id_level'
         ]);
 
-        $user->update($request->all());
-        return redirect()->route('admin.users.index')->with('success', 'User berhasil diperbarui');
+        // Siapkan data untuk update
+        $data = [
+            'nama_user' => $request->nama_user,
+            'username' => $request->username,
+            'id_level' => $request->id_level
+        ];
+
+        // Update password hanya jika diisi
+        if ($request->filled('password')) {
+            $data['password'] = Hash::make($request->password);
+        }
+
+        // Update data user
+        try {
+            $user->update($data);
+            return redirect()->route('admin.users.index')
+                ->with('success', 'Data pengguna berhasil diperbarui');
+        } catch (\Exception $e) {
+            return back()
+                ->withInput()
+                ->withErrors(['error' => 'Gagal memperbarui data pengguna: ' . $e->getMessage()]);
+        }
     }
 
-    public function userDestroy(User $user)
+    public function destroy(User $user)
     {
+        if ($user->id_level === 1) {
+            return redirect()->route('admin.users.index')
+                ->with('error', 'Tidak dapat menghapus user admin');
+        }
+
         $user->delete();
-        return redirect()->route('admin.users.index')->with('success', 'User berhasil dihapus');
+        return redirect()->route('admin.users.index')
+            ->with('success', 'User berhasil dihapus');
     }
 
     // CRUD Makanan
@@ -211,5 +254,54 @@ class AdminController extends Controller
     {
         $makanan->delete();
         return redirect()->route('admin.makanan.index')->with('success', 'Makanan berhasil dihapus');
+    }
+
+    public function menuIndex()
+    {
+        $menus = Makanan::orderBy('nama_masakan')->get();
+        return view('admin.menu.index', compact('menus'));
+    }
+
+    public function menuCreate()
+    {
+        return view('admin.menu.create');
+    }
+
+    public function menuStore(Request $request)
+    {
+        $request->validate([
+            'nama_masakan' => 'required|string|max:255',
+            'harga' => 'required|numeric|min:0',
+            'status_masakan' => 'required|in:tersedia,habis',
+            'gambar' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
+        ]);
+
+        $data = $request->all();
+
+        if ($request->hasFile('gambar')) {
+            $data['gambar'] = $request->file('gambar')->store('menu', 'public');
+        }
+
+        Makanan::create($data);
+
+        return redirect()->route('admin.menu.index')
+            ->with('success', 'Menu berhasil ditambahkan');
+    }
+
+    public function menuEdit(Makanan $makanan)
+    {
+        return view('admin.menu.edit', compact('makanan'));
+    }
+
+    public function menuDestroy(Makanan $makanan)
+    {
+        if ($makanan->gambar) {
+            Storage::disk('public')->delete($makanan->gambar);
+        }
+
+        $makanan->delete();
+
+        return redirect()->route('admin.menu.index')
+            ->with('success', 'Menu berhasil dihapus');
     }
 }

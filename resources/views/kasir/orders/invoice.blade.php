@@ -72,9 +72,9 @@
             <div class="flex justify-between">
                 <span class="font-semibold">Status Pembayaran:</span>
                 <span class="
-                    @if($order->status_pembayaran === 'lunas') text-green-600 
-                    @elseif($order->status_pembayaran === 'kurang') text-red-600 
-                    @else text-yellow-600 
+                    @if($order->status_pembayaran === 'lunas') text-green-600
+                    @elseif($order->status_pembayaran === 'kurang') text-red-600
+                    @else text-yellow-600
                     @endif font-semibold
                 ">
                     {{ $order->status_pembayaran_label }}
@@ -115,7 +115,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Jumlah Uang</label>
-                <input type="number" name="uang_bayar" 
+                <input type="number" name="uang_bayar"
                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                        min="0" step="1000" required>
             </div>
