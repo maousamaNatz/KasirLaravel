@@ -3,10 +3,7 @@
 @section('title', 'Daftar Menu Makanan')
 
 @section('content')
-@php
 
-$userLevel = Session::get('id_level');
-@endphp
 <div class="container mx-auto p-6 bg-gray-50">
     <div class="bg-white rounded-lg shadow-md p-6">
         <h2 class="text-2xl font-bold mb-4 text-gray-800">Daftar Menu Makanan</h2>
@@ -33,7 +30,7 @@ $userLevel = Session::get('id_level');
                                 {{ $makanan->status_masakan ? 'Tersedia' : 'Habis' }}
                             </span>
                         </td>
-                        @if ($userLevel == 1)
+                        @if (auth()->user()->level->nama_level == 'admin')
                         <td class="px-6 py-4 border-b border-gray-200">
                             <a href="{{ route('admin.makanans.edit', $makanan->id_masakan) }}" class="text-blue-600 hover:text-blue-900 mr-2">Edit</a>
                             <form action="{{ route('admin.makanans.destroy', $makanan->id_masakan) }}" method="POST" class="inline">

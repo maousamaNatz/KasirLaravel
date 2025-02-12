@@ -17,7 +17,7 @@
                     </label>
                     <input type="text" name="nama_user"
                            class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition duration-200"
-                           value="{{ old('nama_user') }}" 
+                           value="{{ old('nama_user') }}"
                            placeholder="Masukkan nama lengkap"
                            required>
                 </div>

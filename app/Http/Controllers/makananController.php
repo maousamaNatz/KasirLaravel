@@ -14,10 +14,7 @@ class makananController extends Controller
      */
     public function index()
     {
-        // Cek autentikasi dan level pengguna
-        if (!AuthController::checkAuth() || (AuthController::userLevel() != 1 && AuthController::userLevel() != 2)) {
-            return redirect()->route('login')->withErrors(['auth' => 'Anda tidak memiliki akses']);
-        }
+
 
         $makanans = Makanan::paginate(10);
         return view('makanans', compact('makanans'));
@@ -36,7 +33,7 @@ class makananController extends Controller
 
         try {
             Makanan::create($validated);
-            return redirect()->route('admin.menu.index')->with('success', 'Menu berhasil ditambahkan');
+            return redirect()->route('admin.makanans.index')->with('success', 'Menu berhasil ditambahkan');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => 'Gagal menambahkan menu: ' . $e->getMessage()]);
         }
@@ -65,7 +62,7 @@ class makananController extends Controller
         try {
             $makanan = Makanan::findOrFail($id);
             $makanan->update($validated);
-            return redirect()->route('admin.menu.index')->with('success', 'Menu berhasil diperbarui');
+            return redirect()->route('admin.makanans.index')->with('success', 'Menu berhasil diperbarui');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => 'Gagal memperbarui menu: ' . $e->getMessage()]);
         }
@@ -79,7 +76,7 @@ class makananController extends Controller
         try {
             $makanan = Makanan::findOrFail($id);
             $makanan->delete();
-            return redirect()->route('admin.menu.index')->with('success', 'Menu berhasil dihapus');
+            return redirect()->route('admin.makanans.index')->with('success', 'Menu berhasil dihapus');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => 'Gagal menghapus menu: ' . $e->getMessage()]);
         }

@@ -9,8 +9,8 @@ class LevelSeeder extends Seeder
 {
     public function run(): void
     {
-        Level::create(['nama_level' => 'Admin']);
-        Level::create(['nama_level' => 'Kasir']);
+        Level::create(['nama_level' => 'admin']);
+        Level::create(['nama_level' => 'kasir']);
         Level::create(['nama_level' => 'koki']);
     }
 }

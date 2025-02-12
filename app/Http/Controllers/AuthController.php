@@ -4,122 +4,88 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Session;
-use Illuminate\Foundation\Validation\ValidatesRequests;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
+/**
+ * Controller untuk menangani autentikasi pengguna
+ * Controller ini berisi fungsi-fungsi untuk login dan logout user
+ */
 class AuthController extends Controller
 {
-    use AuthorizesRequests, ValidatesRequests;
-
     /**
-     * Menampilkan form login
+     * Menampilkan halaman login
+     * Method ini akan merender view auth.login untuk form login
      */
-    public function showLoginForm()
+    public function index()
     {
-        // Tambahkan pengecekan jika sudah login
-        if (AuthController::checkAuth()) {
-            return $this->redirectToDashboard(AuthController::userLevel());
-        }
-
+        // Mengembalikan view login.blade.php yang ada di folder auth
         return view('auth.login');
     }
 
     /**
-     * Memproses data login
+     * Melakukan proses login pengguna
+     * Method ini memvalidasi input username dan password
+     * Jika valid, user akan diarahkan sesuai levelnya
+     *
+     * @param Request $request Request yang berisi username dan password
+     * @return \Illuminate\Http\JsonResponse Response berupa token dan data user jika berhasil
      */
     public function login(Request $request)
     {
-        // Validasi input dengan pesan error kustom
-        $validated = $request->validate([
-            'username' => 'required|string|max:30',
-            'password' => 'required|string|min:6'
+        // Validasi input username dan password harus diisi
+        $credentials = $request->validate([
+            'username' => 'required',
+            'password' => 'required',
         ]);
 
-        // Cari user dengan eager loading relasi level
-        $user = User::with('level')->where('username', $validated['username'])->first();
+        // Cek apakah credentials valid menggunakan Auth::attempt()
+        if (Auth::attempt($credentials)) {
+            // Regenerate session untuk keamanan
+            $request->session()->regenerate();
 
-        // Tambahkan pengecekan user ditemukan atau tidak
-        if (!$user) {
-            return back()->withErrors([
-                'username' => 'Username tidak ditemukan',
-                'password' => 'Password tidak ditemukan',
-            ])->withInput($request->except('password'));
+            // Ambil data user yang login
+            $user = Auth::user();
+
+            // Redirect berdasarkan level user menggunakan switch case
+            switch($user->level->nama_level) {
+                case 'admin':
+                    return redirect()->intended(route('admin.dashboard'));
+                case 'kasir':
+                    return redirect()->intended(route('kasir.dashboard'));
+                case 'koki':
+                    return redirect()->intended(route('koki.dashboard'));
+                default:
+                    return redirect()->intended('/');
+            }
         }
 
-        // Cek password
-        if (!Hash::check($validated['password'], $user->password)) {
-            return back()->withErrors([
-                'username' => 'Username tidak ditemukan',
-                'password' => 'Password tidak ditemukan',
-            ])->withInput($request->except('password'));
-        }
-
-        // Perbaikan session handling
-        Session::regenerate(true); // Regenerasi lebih kuat
-        Session::put([
-            'id_user' => $user->id_user,
-            'nama_user' => $user->nama_user,
-            'id_level' => $user->id_level
-        ]);
-        Session::save(); // Simpan session secara eksplisit
-
-        // Redirect ke dashboard sesuai level
-        return $this->redirectToDashboard($user->id_level);
+        // Jika login gagal, kembalikan ke halaman login dengan pesan error
+        return back()->withErrors([
+            'username' => 'Username atau password salah.',
+        ])->withInput($request->except('password'));
     }
 
     /**
-     * Logout pengguna dengan membersihkan session dan redirect ke halaman login
+     * Melakukan proses logout pengguna
+     * Method ini akan menghapus session dan token user
+     * Kemudian redirect ke halaman utama
+     *
+     * @param Request $request Request dari user yang sedang login
+     * @return \Illuminate\Http\JsonResponse Response berupa pesan sukses
      */
-    public function logout()
+    public function logout(Request $request)
     {
-        // Perbaikan logout handling
-        Session::flush();
-        Session::regenerate(true); // Regenerasi dengan menghapus data lama
-        Session::regenerateToken();
+        // Logout user yang sedang login
+        Auth::logout();
 
-        return redirect()->route('login')->with('success', 'Anda telah berhasil logout');
-    }
+        // Invalidate session
+        $request->session()->invalidate();
 
-    /**
-     * Redirect berdasarkan level pengguna
-     */
-    protected function redirectToDashboard($level)
-    {
-        switch ($level) {
-            case 1: // Admin
-                return redirect()->route('admin.dashboard');
-            case 2: // Kasir
-                return redirect()->route('kasir.dashboard');
-            case 3: // Koki
-                return redirect()->route('koki.dashboard');
-            default:
-                return redirect('/');
-        }
-    }
+        // Generate token baru
+        $request->session()->regenerateToken();
 
-    /**
-     * Cek status login pengguna
-     */
-    public static function checkAuth()
-    {
-        return Session::has('id_user');
-    }
-
-    /**
-     * Cek level pengguna
-     */
-    public static function userLevel()
-    {
-        return Session::get('id_level');
-    }
-
-    /**
-     * Dapatkan ID pengguna yang sedang login
-     */
-    public static function userId()
-    {
-        return Session::get('id_user');
+        // Redirect ke halaman utama
+        return redirect('/');
     }
 }

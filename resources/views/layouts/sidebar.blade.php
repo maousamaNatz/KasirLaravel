@@ -1,14 +1,8 @@
 <aside class="w-64 bg-white shadow-lg h-screen sticky top-0">
     <div class="p-4">
         <ul class="space-y-2">
-            @php
-                $userLevel = Session::get('id_level');
-            @endphp
-
-
-
             {{-- Menu Admin --}}
-            @if ($userLevel == 1)
+            @if (auth()->user()->level->nama_level == 'admin')
                 <li class="group">
                     <details class="dropdown" open>
                         <summary class="flex items-center justify-between p-2 hover:bg-gray-100 rounded cursor-pointer">
@@ -37,7 +31,7 @@
             @endif
 
             {{-- Menu Kasir --}}
-            @if ($userLevel == 2)
+            @if (auth()->user()->level->nama_level == 'kasir')
                 <li class="">
                     <a href="{{ route('kasir.dashboard') }}"
                         class="block p-2 text-gray-600 hover:bg-gray-100 rounded">Dashboard</a>
@@ -51,13 +45,13 @@
                         class="block p-2 text-gray-600 hover:bg-gray-100 rounded">Riwayat Transaksi</a>
                 </li>
                 <li class="">
-                    <a href="{{ route('kasir.dashboard') }}"
+                    <a href="{{ route('kasir.laporan') }}"
                         class="block p-2 text-gray-600 hover:bg-gray-100 rounded">Laporan</a>
                 </li>
             @endif
 
             {{-- Menu Koki --}}
-            @if ($userLevel == 3)
+            @if (auth()->user()->level->nama_level == 'koki')
                 <li class="group">
                     <details class="dropdown" open>
                         <summary class="flex items-center justify-between p-2 hover:bg-gray-100 rounded cursor-pointer">
@@ -77,7 +71,8 @@
                 </li>
             @endif
 
-            @if ($userLevel === 1 || $userLevel === 2)
+            {{-- Menu Shared --}}
+            @if (auth()->user()->level->nama_level == 'admin' || auth()->user()->level->nama_level == 'kasir')
                 <li class="">
                     <a href="{{ route('daftar.makanans') }}"
                         class="block p-2 text-gray-600 hover:bg-gray-100 rounded">Manajemen Menu</a>
